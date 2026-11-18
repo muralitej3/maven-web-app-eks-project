@@ -1,76 +1,67 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: realtime-task
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: realtime-task
+data:
+  APP_ENV: "kops-demo"
+  WELCOME_MSG: "Hello from kOps Ingress Task"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mavenwebappdeployment
+  name: nginx-deploy
+  namespace: realtime-task
 spec:
-  replicas: 1
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: mavenwebapp
+      app: nginx
   template:
     metadata:
-      name: mavenwebapppod
       labels:
-        app: mavenwebapp
+        app: nginx
     spec:
-      imagePullSecrets:
-        - name: dockerhub-secret
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                labelSelector:
-                  matchLabels:
-                    app: mavenwebapp
-                topologyKey: kubernetes.io/hostname
       containers:
-        - name: mavenwebappcontainer
-          image: chakalimurali/app:v1
-          imagePullPolicy: Always
-          ports:
-            - name: http
-              containerPort: 8080
-          env:
-            - name: JAVA_TOOL_OPTIONS
-              value: "-Xms128m -Xmx320m"
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-          startupProbe:
-            tcpSocket:
-              port: 8080
-            failureThreshold: 30
-            periodSeconds: 5
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 15
-            periodSeconds: 20
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: nginx-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mavenwebappsvc
+  name: nginx-svc
+  namespace: realtime-task
 spec:
-  type: LoadBalancer
   selector:
-    app: mavenwebapp
+    app: nginx
   ports:
-    - port: 80
-      targetPort: 8080
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  namespace: realtime-task
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-svc
+            port:
+              number: 80
