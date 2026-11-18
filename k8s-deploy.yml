@@ -1,4 +1,4 @@
-cat <<EOF | kubectl apply -f -
+cat << 'EOF' > k8s-deploy.yml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -10,8 +10,8 @@ metadata:
   name: nginx-config
   namespace: realtime-task
 data:
-  APP_ENV: "kops-demo"
-  WELCOME_MSG: "Hello from kOps Ingress Task"
+  APP_ENV: "eks-demo"
+  WELCOME_MSG: "Hello from EKS LoadBalancer"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,30 +44,19 @@ kind: Service
 metadata:
   name: nginx-svc
   namespace: realtime-task
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: nginx
   ports:
   - port: 80
     targetPort: 80
     protocol: TCP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nginx-ingress
-  namespace: realtime-task
-spec:
-  ingressClassName: nginx
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: nginx-svc
-            port:
-              number: 80
 EOF
+
+# Apply the file
+kubectl apply -f k8s-deploy.yml
