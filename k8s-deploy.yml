@@ -20,7 +20,16 @@ spec:
         app: mavenwebapp
     spec:
       imagePullSecrets:
-        - name: dockerhub-secret        # ← delete this block if repo is public
+        - name: dockerhub-secret
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: mavenwebapp
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: mavenwebappcontainer
           image: chakalimurali/app:v1
@@ -28,6 +37,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx320m"
           resources:
             requests:
               cpu: "100m"
@@ -36,20 +48,17 @@ spec:
               cpu: "500m"
               memory: "512Mi"
           startupProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 8080
             failureThreshold: 30
-            periodSeconds: 5           # up to 150s to start
+            periodSeconds: 5
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
