@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 20   # ADDED: faster pod shutdown
       containers:
       - name: mavenwebapp
-        image: nginx:alpine               # CHANGED LATER: replace with your built image, e.g. <ecr-or-dockerhub-repo>:<build-number>
+        image: chakalimurali/app:v1               # CHANGED LATER: replace with your built image, e.g. <ecr-or-dockerhub-repo>:<build-number>
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
