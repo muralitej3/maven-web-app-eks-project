@@ -1,23 +1,7 @@
-cat << 'EOF' > k8s-deploy.yml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: realtime-task
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nginx-config
-  namespace: realtime-task
-data:
-  APP_ENV: "eks-demo"
-  WELCOME_MSG: "Hello from EKS LoadBalancer"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deploy
-  namespace: realtime-task
   labels:
     app: nginx
 spec:
@@ -35,19 +19,11 @@ spec:
         image: nginx:alpine
         ports:
         - containerPort: 80
-        envFrom:
-        - configMapRef:
-            name: nginx-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: nginx-svc
-  namespace: realtime-task
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
   type: LoadBalancer
   selector:
@@ -55,8 +31,3 @@ spec:
   ports:
   - port: 80
     targetPort: 80
-    protocol: TCP
-EOF
-
-# Apply the file
-kubectl apply -f k8s-deploy.yml
