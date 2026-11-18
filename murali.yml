@@ -5,7 +5,13 @@ metadata:
   labels:
     app: mavenwebapp
 spec:
-  replicas: 1
+  replicas: 2                          # CHANGED: 2 pods so there is no downtime during rollouts
+  revisionHistoryLimit: 3              # ADDED: keep fewer old ReplicaSets
+  strategy:                            # ADDED: explicit rolling update
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: mavenwebapp
@@ -14,11 +20,32 @@ spec:
       labels:
         app: mavenwebapp
     spec:
+      terminationGracePeriodSeconds: 20   # ADDED: faster pod shutdown
       containers:
       - name: mavenwebapp
-        image: nginx:alpine
+        image: nginx:alpine               # CHANGED LATER: replace with your built image, e.g. <ecr-or-dockerhub-repo>:<build-number>
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
+        readinessProbe:                   # ADDED
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:                    # ADDED
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:                        # ADDED
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
 ---
 apiVersion: v1
 kind: Service
